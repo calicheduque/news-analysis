@@ -4,28 +4,45 @@ from dotenv import load_dotenv
 
 load_dotenv()
 
-client = anthropic.Anthropic()
+api_key = os.getenv("ANTHROPIC_API_KEY")
+
+if not api_key:
+    raise RuntimeError("ANTHROPIC_API_KEY not found in .env")
+
+client = anthropic.Anthropic(api_key=api_key)
 
 def probar_conexion():
-    print("Conectando con Anthropic usando Poetry...")
+    print("Conectando con Anthropic...")
+
     try:
         message = client.messages.create(
-            model="claude-3-5-sonnet-20241022", 
+            model="claude-sonnet-5-5",
             max_tokens=50,
-            #temperature=0,
+            temperature=0,
             messages=[
-                {"role": "user", "content": "Responde solo con las palabras: 'API funcionando correctamente'."}
+                {
+                    "role": "user",
+                    "content": "Responde solo: API funcionando correctamente."
+                }
             ]
         )
+
         print("\n✅ ¡Éxito!")
-        print("Respuesta de Claude:", message.content[0].text)
-        
+
+        for block in message.content:
+            if block.type == "text":
+                print(block.text)
+
     except anthropic.AuthenticationError:
-        print("\n❌ Error de Autenticación: La API key es inválida o fue revocada.")
+        print("❌ API key inválida.")
     except anthropic.RateLimitError:
-        print("\n❌ Error de Límite: Has excedido el límite o no tienes créditos.")
-    except Exception as e:
-        print(f"\n❌ Error inesperado: {e}")
+        print("❌ Rate limit o límite de uso.")
+    except anthropic.APIConnectionError as e:
+        print(f"❌ Error de conexión: {e}")
+    except anthropic.APIStatusError as e:
+        print(f"❌ API error {e.status_code}: {e.message}")
+    except anthropic.APIError as e:
+        print(f"❌ Error Anthropic: {e}")
 
 if __name__ == "__main__":
     probar_conexion()
